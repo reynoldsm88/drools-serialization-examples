@@ -10,10 +10,6 @@ import com.redhat.model.AggregateFactD;
 
 global com.redhat.model.GlobalFunctions functions;
 
-declare TransientFact
-	str : String
-end
-
 rule "Debug Rule 1"
 	salience 100
 	when

@@ -1,0 +1,5 @@
+package com.redhat.rules;
+
+declare TransientFact
+	str : String
+end

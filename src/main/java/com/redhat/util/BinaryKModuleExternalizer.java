@@ -98,7 +98,7 @@ public class BinaryKModuleExternalizer {
             out.writeObject( binKBaseModelMap );
         }
 
-        @SuppressWarnings ( "unchecked")
+        @SuppressWarnings( "unchecked" )
         @Override
         public void readExternal( ObjectInput in ) throws IOException, ClassNotFoundException {
             releaseId = (ReleaseId) in.readObject();
@@ -147,7 +147,7 @@ public class BinaryKModuleExternalizer {
             out.writeObject( binKieSessionModelMap );
         }
 
-        @SuppressWarnings ( "unchecked")
+        @SuppressWarnings( "unchecked" )
         @Override
         public void readExternal( ObjectInput in ) throws IOException, ClassNotFoundException {
             name = (String) in.readObject();
@@ -198,7 +198,7 @@ public class BinaryKModuleExternalizer {
      * @param kjarFile
      * @param binFile
      */
-    public static void kjarToBinary( File kjarFile, File binFile ) {
+    public static void kjarToBinary( File kjarFile, File binFile ) throws Exception {
         KieServices ks = KieServices.Factory.get();
         KieRepository kr = ks.getRepository();
 
@@ -213,21 +213,16 @@ public class BinaryKModuleExternalizer {
      * @param kModule
      * @param binFile
      */
-    public static void kieModuleToBinary( KieModule kModule, File binFile ) {
+    public static void kieModuleToBinary( KieModule kModule, File binFile ) throws Exception {
         KieServices ks = KieServices.Factory.get();
         BinKieModule binKModule = new BinKieModule();
         binKModule.copy( ks, (InternalKieModule) kModule );
 
-        try {
-            FileOutputStream fo = new FileOutputStream( binFile );
-            ObjectOutputStream so = new DroolsObjectOutputStream( fo );
-            so.writeObject( binKModule );
-            so.flush();
-            so.close();
-        }
-        catch ( Exception e ) {
-            logger.error( "Failed to write binary file", e );
-        }
+        FileOutputStream fo = new FileOutputStream( binFile );
+        ObjectOutputStream so = new DroolsObjectOutputStream( fo );
+        so.writeObject( binKModule );
+        so.flush();
+        so.close();
     }
 
     /**
@@ -236,41 +231,36 @@ public class BinaryKModuleExternalizer {
      * @param binFile
      * @return KieContainer
      */
-    public static KieContainer getKieContainer( File binFile ) {
-        try {
-            FileInputStream fi = new FileInputStream( binFile );
-            ObjectInputStream si = new DroolsObjectInputStream( fi );
-            BinKieModule binKModule = (BinKieModule) si.readObject();
-            si.close();
+    public static KieContainer getKieContainer( File binFile ) throws Exception {
+        FileInputStream fi = new FileInputStream( binFile );
+        ObjectInputStream si = new DroolsObjectInputStream( fi );
+        BinKieModule binKModule = (BinKieModule) si.readObject();
+        si.close();
 
-            KieServices ks = KieServices.Factory.get();
-            KieFileSystem kfs = ks.newKieFileSystem();
-            // kmodule info
-            KieModuleModel kModuleModel = getKieModuleModel( binKModule, ks );
-            kfs.writeKModuleXML( kModuleModel.toXML() );
-            kfs.generateAndWritePomXML( binKModule.releaseId );
+        KieServices ks = KieServices.Factory.get();
+        KieFileSystem kfs = ks.newKieFileSystem();
+        // kmodule info
+        KieModuleModel kModuleModel = getKieModuleModel( binKModule, ks );
+        kfs.writeKModuleXML( kModuleModel.toXML() );
+        kfs.generateAndWritePomXML( binKModule.releaseId );
 
-            // build with empty resources
-            KieBuilder kb = ks.newKieBuilder( kfs );
-            kb.buildAll();
-            if ( kb.getResults().hasMessages( Level.ERROR ) ) {
-                throw new RuntimeException( "Build Errors:\n" + kb.getResults().toString() );
-            }
-            // create container
-            KieContainer kContainer = ks.newKieContainer( binKModule.releaseId );
-            binKModule.binKBaseModelMap.forEach( ( kBaseName, binKBaseModel ) -> {
-                // add KnowledgePackages to KnowledgeBase
-                KnowledgeBaseImpl knowledgeBase = (KnowledgeBaseImpl) kContainer.getKieBase( kBaseName );
-                @SuppressWarnings ( "unchecked")
-                Collection<KnowledgePackage> knowledgePackages = (Collection<KnowledgePackage>) (Collection<?>) binKBaseModel.kPackages;
-                knowledgeBase.addKnowledgePackages( knowledgePackages );
-            } );
-            return kContainer;
+        // build with empty resources
+        KieBuilder kb = ks.newKieBuilder( kfs );
+        kb.buildAll();
+        if ( kb.getResults().hasMessages( Level.ERROR ) ) {
+            throw new RuntimeException( "Build Errors:\n" + kb.getResults().toString() );
         }
-        catch ( Exception e ) {
-            logger.error( "Failed to read binary file", e );
-        }
-        return null;
+        // create container
+        KieContainer kContainer = ks.newKieContainer( binKModule.releaseId );
+        binKModule.binKBaseModelMap.forEach( ( kBaseName, binKBaseModel ) -> {
+            // add KnowledgePackages to KnowledgeBase
+            KnowledgeBaseImpl knowledgeBase = (KnowledgeBaseImpl) kContainer.getKieBase( kBaseName );
+            @SuppressWarnings( "unchecked" )
+            Collection<KnowledgePackage> knowledgePackages = (Collection<KnowledgePackage>) (Collection<?>) binKBaseModel.kPackages;
+            knowledgeBase.addKnowledgePackages( knowledgePackages );
+        } );
+        return kContainer;
+
     }
 
     /**
