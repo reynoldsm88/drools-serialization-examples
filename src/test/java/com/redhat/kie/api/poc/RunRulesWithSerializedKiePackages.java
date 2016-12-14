@@ -28,11 +28,12 @@ public class RunRulesWithSerializedKiePackages {
 
     private static final String SRC_MAIN_RESOURCES = System.getProperty( "user.dir" ) + File.separator + "src" + File.separator + "main" + File.separator + "resources";
     private static final String TARGET = System.getProperty( "user.dir" ) + File.separator + "target";
+    private static final String BIN_FILE = "knowledge-packages.bin";
 
     @Before
     public void setup() throws IOException {
         System.err.println( "deleting bin file" );
-        Files.deleteIfExists( Paths.get( TARGET + File.separator + "knowledge-packages.bin" ) );
+        Files.deleteIfExists( Paths.get( TARGET + File.separator + BIN_FILE ) );
     }
 
     /**
@@ -42,7 +43,7 @@ public class RunRulesWithSerializedKiePackages {
     public void serializePackagesFromOneFileFailsWithClassNotFoundException() throws Exception {
         serializeOneFileAsBin( SRC_MAIN_RESOURCES + File.separator + "com.redhat.rules.one.file" + File.separator + "DebugRules.drl" );
         try {
-            Collection<KnowledgePackage> packages = deserializeBinaryFile( "knowledge-packages.bin" );
+            Collection<KnowledgePackage> packages = deserializeBinaryFile();
             KnowledgeBase kbase = KnowledgeBaseFactory.newKnowledgeBase();
             kbase.addKnowledgePackages( packages );
         }
@@ -59,7 +60,7 @@ public class RunRulesWithSerializedKiePackages {
     @Test
     public void serializePackagesWithOnlyDeclaredFactTypeContainsDeclaredFactType() throws Exception {
         serializeOneFileAsBin( SRC_MAIN_RESOURCES + File.separator + "com.redhat.rules.two.files" + File.separator + "DeclaredFact.drl" );
-        Collection<KnowledgePackage> packages = deserializeBinaryFile( "knowledge-packages.bin" );
+        Collection<KnowledgePackage> packages = deserializeBinaryFile();
         KnowledgeBase kbase = KnowledgeBaseFactory.newKnowledgeBase();
         kbase.addKnowledgePackages( packages );
         // kbase has the declared fact in it
@@ -72,15 +73,15 @@ public class RunRulesWithSerializedKiePackages {
     @Test
     public void serializePackagesFromTwoFilesDoesNotContainDeclaredFactType() throws Exception {
         serializeTwoFilesAsBin();
-        Collection<KnowledgePackage> packages = deserializeBinaryFile( "knowledge-packages.bin" );
+        Collection<KnowledgePackage> packages = deserializeBinaryFile();
         KnowledgeBase kbase = KnowledgeBaseFactory.newKnowledgeBase();
         kbase.addKnowledgePackages( packages );
         assertFalse( kbase.getFactType( "com.redhat.rules", "TransientFact" ) != null );
     }
 
     @SuppressWarnings( "unchecked" )
-    private Collection<KnowledgePackage> deserializeBinaryFile( String filename ) throws Exception {
-        FileInputStream fis = new FileInputStream( Paths.get( TARGET + File.separator + filename ).toFile() );
+    private Collection<KnowledgePackage> deserializeBinaryFile() throws Exception {
+        FileInputStream fis = new FileInputStream( Paths.get( TARGET + File.separator + BIN_FILE ).toFile() );
         DroolsObjectInputStream in = new DroolsObjectInputStream( fis );
         Collection<KnowledgePackage> packages = (Collection<KnowledgePackage>) in.readObject();
         in.close();
@@ -91,7 +92,7 @@ public class RunRulesWithSerializedKiePackages {
         KnowledgeBuilder builder = KnowledgeBuilderFactory.newKnowledgeBuilder();
         try {
             builder.add( ResourceFactory.newFileResource( new File( filename ) ), ResourceType.DRL );
-            FileOutputStream fos = new FileOutputStream( TARGET + File.separator + "knowledge-packages.bin" );
+            FileOutputStream fos = new FileOutputStream( TARGET + File.separator + BIN_FILE );
             DroolsObjectOutputStream out = new DroolsObjectOutputStream( fos );
             out.writeObject( builder.getKnowledgePackages() );
             out.close();
