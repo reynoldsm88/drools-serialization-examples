@@ -22,7 +22,7 @@ import com.redhat.kie.serialization.util.Utils;
 
 /**
  * 
- * This test demonstrates that serialzing from the KieBase works in the sense that it loads the binary rules without
+ * This test demonstrates that serializing from the KieBase works in the sense that it loads the binary rules without
  * triggering a rebuild. This is the call stack for getting the KieSession... at no point does it call a builder method
  *  KieBaseImpl.newKieSession
  *      KieBaseImpl.newStatefulKnowledgeSession (line 294)
