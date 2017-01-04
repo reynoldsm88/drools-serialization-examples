@@ -46,7 +46,6 @@ public class SerializeKnowledgePackagesTest {
 
     @Before
     public void setup() throws IOException {
-        System.err.println( "deleting bin file" );
         Files.deleteIfExists( Paths.get( Utils.TARGET_DIR + File.separator + BIN_FILE ) );
     }
 
@@ -96,7 +95,7 @@ public class SerializeKnowledgePackagesTest {
             kbase.addKnowledgePackages( packages );
         }
         catch ( RuntimeException e ) {
-         // kbase does not have the declared fact type
+            // kbase does not have the declared fact type
             assertTrue( e.getCause() instanceof ClassNotFoundException );
             e.getMessage().contains( "TransientFact" );
         }

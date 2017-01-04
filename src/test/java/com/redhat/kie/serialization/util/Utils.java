@@ -8,7 +8,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 
-import org.drools.compiler.compiler.io.memory.MemoryFileSystem;
 import org.drools.compiler.kie.builder.impl.KieFileSystemImpl;
 import org.drools.compiler.kie.builder.impl.MemoryKieModule;
 import org.drools.compiler.kproject.models.KieModuleModelImpl;
@@ -32,11 +31,6 @@ public class Utils {
     public static final String TARGET_DIR = System.getProperty( "user.dir" ) + File.separator + "target";
     public static final KieServices KIE_SERVICES = KieServices.Factory.get();
     public static final String RULES_FOLDER = "com.redhat.rules";
-
-    public static void createKJar( String jarName, MemoryKieModule kmodule ) throws Exception {
-        MemoryFileSystem trgMfs = kmodule.getMemoryFileSystem();
-        trgMfs.writeAsJar( new File( TARGET_DIR ), "test-kjar" );
-    }
 
     public static MemoryKieModule createKieModule( String... files ) throws Exception {
         KieModuleModel kproj = new KieModuleModelImpl();
@@ -73,6 +67,7 @@ public class Utils {
         Arrays.asList( files ).forEach( filename -> {
             try {
                 Path p = Paths.get( SRC_MAIN_RESOURCES + File.separator + RULES_FOLDER + File.separator + filename );
+                System.err.println( "adding : " + p.toAbsolutePath().toString() );
                 kfs.write( "src/main/resources/com.redhat.rules/" + filename, ResourceFactory.newInputStreamResource( Files.newInputStream( p ) ) );
             }
             catch ( Exception e ) {
@@ -89,5 +84,4 @@ public class Utils {
             fail( "There was a problem building the kie module" );
         }
     }
-
 }

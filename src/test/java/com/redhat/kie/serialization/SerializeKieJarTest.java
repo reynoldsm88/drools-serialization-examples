@@ -1,6 +1,5 @@
 package com.redhat.kie.serialization;
 
-import static com.redhat.kie.serialization.util.Utils.createKJar;
 import static com.redhat.kie.serialization.util.Utils.createKieModule;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -10,6 +9,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
+import org.drools.compiler.compiler.io.memory.MemoryFileSystem;
+import org.drools.compiler.kie.builder.impl.MemoryKieModule;
 import org.junit.Before;
 import org.junit.Test;
 import org.kie.api.builder.KieModule;
@@ -87,6 +88,11 @@ public class SerializeKieJarTest {
         int fired = session.fireAllRules();
         session.dispose();
         assertEquals( 2, fired );
+    }
+
+    public static void createKJar( String jarName, MemoryKieModule kmodule ) throws Exception {
+        MemoryFileSystem trgMfs = kmodule.getMemoryFileSystem();
+        trgMfs.writeAsJar( new File( Utils.TARGET_DIR ), "test-kjar" );
     }
 
     private KieSession getKieSessionFromJar() throws Exception {
