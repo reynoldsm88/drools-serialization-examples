@@ -59,9 +59,10 @@ public class SerializeKieJarTest {
             resources.add( new HashMap<String, String>() { { put( "package", "com.redhat.rules" ); put( "filename", "RulesAndDeclaredFact.drl" ); } } );
             createKJar( KJAR_NAME, createKieModule( resources ) );
             convertKjarToBin();
-            assertTrue( Files.exists( Paths.get( Utils.TARGET_DIR + File.separator + KJAR_NAME + ".bin" ) ) );
+            
             KieContainer container = BinaryKModuleExternalizer.getKieContainer( new File( Utils.TARGET_DIR + File.separator + KJAR_NAME + ".bin" ) );
             KieSession session = container.newKieSession( "ksession" );
+            
             session.fireAllRules();
             session.dispose();
         }
@@ -91,10 +92,11 @@ public class SerializeKieJarTest {
         List<Map<String,String>> resources = new ArrayList<Map<String,String>>();
         resources.add( new HashMap<String, String>() { { put( "package", "com.redhat.rules" ); put( "filename", "RulesAndDeclaredFact.drl" ); } } );
         createKJar( KJAR_NAME, createKieModule( resources ) );
-        assertTrue( Files.exists( Paths.get( Utils.TARGET_DIR + File.separator + KJAR_NAME + ".jar" ) ) );
+
         KieSession session = getKieSessionFromJar();
         int fired = session.fireAllRules();
         session.dispose();
+        
         assertEquals( 2, fired );
     }
 

@@ -66,6 +66,7 @@ public class SerializeKieBaseTest {
         KieBase kbase = deserializeKieBase();
         KieSession session = kbase.newKieSession();
         int count = session.fireAllRules();
+        
         assertEquals( 2, count );
 
     }
@@ -78,12 +79,12 @@ public class SerializeKieBaseTest {
         List<Map<String,String>> resources = new ArrayList<Map<String,String>>();
         resources.add( new HashMap<String, String>() { { put( "package", "com.redhat.rules.generated.facts" ); put( "filename", "DeclaredFact.drl" ); } } );
         resources.add( new HashMap<String, String>() { { put( "package", "com.redhat.rules" ); put( "filename", "RulesOnly.drl" ); } } );
-        
         serializeKieBase( createKieModule( resources ) );
         
         KieBase kbase = deserializeKieBase();
         KieSession session = kbase.newKieSession();
         int count = session.fireAllRules();
+        
         assertEquals( 2, count );
 
     }
