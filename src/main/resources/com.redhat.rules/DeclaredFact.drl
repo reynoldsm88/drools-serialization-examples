@@ -1,4 +1,4 @@
-package com.redhat.rules;
+package com.redhat.rules.generated.facts;
 
 declare TransientFact
 	str : String

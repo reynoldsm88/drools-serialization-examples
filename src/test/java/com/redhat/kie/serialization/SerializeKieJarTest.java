@@ -8,6 +8,10 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.drools.compiler.compiler.io.memory.MemoryFileSystem;
 import org.drools.compiler.kie.builder.impl.MemoryKieModule;
@@ -45,13 +49,15 @@ public class SerializeKieJarTest {
      * 
      * Generate a KJar and serialize it using the code from Osamu provided on sme-brms
      * 
-     * This will fail because the declared fact is not found
+     * This will fail because the declared fact type class is not found
      * 
      */
     @Test
     public void loadKjarFromBinaryResultsInClassNotFoundExceptionForDeclaredModel() throws Exception {
         try {
-            createKJar( KJAR_NAME, createKieModule( "RulesAndDeclaredFact.drl" ) );
+            List<Map<String,String>> resources = new ArrayList<Map<String,String>>();
+            resources.add( new HashMap<String, String>() { { put( "package", "com.redhat.rules" ); put( "filename", "RulesAndDeclaredFact.drl" ); } } );
+            createKJar( KJAR_NAME, createKieModule( resources ) );
             convertKjarToBin();
             assertTrue( Files.exists( Paths.get( Utils.TARGET_DIR + File.separator + KJAR_NAME + ".bin" ) ) );
             KieContainer container = BinaryKModuleExternalizer.getKieContainer( new File( Utils.TARGET_DIR + File.separator + KJAR_NAME + ".bin" ) );
@@ -82,7 +88,9 @@ public class SerializeKieJarTest {
      */
     @Test
     public void generatedKieJarWorksBecauseRulesAreBuiltFromSource() throws Exception {
-        createKJar( KJAR_NAME, createKieModule( "RulesAndDeclaredFact.drl" ) );
+        List<Map<String,String>> resources = new ArrayList<Map<String,String>>();
+        resources.add( new HashMap<String, String>() { { put( "package", "com.redhat.rules" ); put( "filename", "RulesAndDeclaredFact.drl" ); } } );
+        createKJar( KJAR_NAME, createKieModule( resources ) );
         assertTrue( Files.exists( Paths.get( Utils.TARGET_DIR + File.separator + KJAR_NAME + ".jar" ) ) );
         KieSession session = getKieSessionFromJar();
         int fired = session.fireAllRules();

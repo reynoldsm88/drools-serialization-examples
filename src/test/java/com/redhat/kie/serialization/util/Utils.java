@@ -6,7 +6,8 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 import org.drools.compiler.kie.builder.impl.KieFileSystemImpl;
 import org.drools.compiler.kie.builder.impl.MemoryKieModule;
@@ -32,15 +33,19 @@ public class Utils {
     public static final KieServices KIE_SERVICES = KieServices.Factory.get();
     public static final String RULES_FOLDER = "com.redhat.rules";
 
-    public static MemoryKieModule createKieModule( String... files ) throws Exception {
+    public static MemoryKieModule createKieModule( List<Map<String, String>> resources ) throws Exception {
         KieModuleModel kproj = new KieModuleModelImpl();
 
         //@formatter:off
         KieBaseModel kieModule = kproj.newKieBaseModel( "kbase" )
             .setEqualsBehavior( EqualityBehaviorOption.EQUALITY )
             .setEventProcessingMode( EventProcessingOption.CLOUD )
-            .addPackage( "com.redhat.rules" )
             .setDefault( true );
+        
+        resources.forEach( resource -> {
+            System.err.println( "adding package " + resource.get( "package" ) );
+            kieModule.addPackage( resource.get( "package" ) );
+         } );
 
         kieModule.newKieSessionModel( "ksession" )
             .setType( KieSessionType.STATEFUL )
@@ -55,20 +60,21 @@ public class Utils {
         kfs.generateAndWritePomXML( releaseId );
 
         KieBuilder kBuilder = KIE_SERVICES.newKieBuilder( kfs );
-        buildRules( kfs, kBuilder, files );
+        buildRules( kfs, kBuilder, resources );
 
         MemoryKieModule memoryKieModule = (MemoryKieModule) kBuilder.getKieModule();
 
         return memoryKieModule;
     }
 
-    private static void buildRules( KieFileSystem kfs, KieBuilder kBuilder, String... files ) throws Exception {
+    private static void buildRules( KieFileSystem kfs, KieBuilder kBuilder, List<Map<String, String>> resources ) throws Exception {
 
-        Arrays.asList( files ).forEach( filename -> {
+        resources.forEach( resource -> {
             try {
-                Path p = Paths.get( SRC_MAIN_RESOURCES + File.separator + RULES_FOLDER + File.separator + filename );
+                Path p = Paths.get( SRC_MAIN_RESOURCES + File.separator + RULES_FOLDER + File.separator + resource.get( "filename" ) );
                 System.err.println( "adding : " + p.toAbsolutePath().toString() );
-                kfs.write( "src/main/resources/com.redhat.rules/" + filename, ResourceFactory.newInputStreamResource( Files.newInputStream( p ) ) );
+                System.out.println( "adding to kfs as: " + "src/main/resources/" + resource.get( "package" ) + "/" + resource.get( "filename" ) );
+                kfs.write( "src/main/resources/" + resource.get( "package" ) + "/" + resource.get( "filename" ), ResourceFactory.newInputStreamResource( Files.newInputStream( p ) ) );
             }
             catch ( Exception e ) {
                 fail( e.getMessage() );

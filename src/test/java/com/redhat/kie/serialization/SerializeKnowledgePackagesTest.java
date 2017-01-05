@@ -29,9 +29,12 @@ import com.redhat.kie.serialization.util.Utils;
 
 /**
  * 
- * This test demonstrates the issues we've had with serialzing KnowledgePackages via the legacy API 
+ * This test demonstrates the issues we've had with serializing KnowledgePackages via the legacy API 
  * According to the customer this used to work in Drools 5.x but does not in 6.x. The main issue is that
- * when serializing packages there is inconsistent behavior with declared fact types
+ * when serializing packages there is inconsistent behavior with declared fact types.
+ * 
+ * KnowledgePackageImpl it has a property of TypeDeclarations. TypeDeclarations have a property Class<?> typeClass
+ * that is transient.
  * 
  * As a reminder, the following three requirements apply:
  * 1) Rules must be built and serialized in a binary format that can be saved to a DB 
@@ -51,7 +54,7 @@ public class SerializeKnowledgePackagesTest {
 
     /**
      * Serializing both the declared fact type and the rules in one file results in the
-     * declared fact not being part of the kbase
+     * declared fact class not found
      */
     @Test
     public void serializeFactTypeAndRulesInOneFile() throws Exception {
@@ -69,22 +72,23 @@ public class SerializeKnowledgePackagesTest {
     }
 
     /**
-     * Serializing just the declared fact results in the fact type being part of the kbase and now problems
+     * Serializing just the declared fact results in the fact type being part of the kbase and no problems
      * creating a kie session
      */
     @Test
     public void serializeOnlyTheDeclaredFactType() throws Exception {
         serializePackagesAsBin( "DeclaredFact.drl" );
         Collection<KnowledgePackage> packages = deserializeBinaryFile();
+        packages.forEach( p -> {System.out.println( p.getName() );} );
         KnowledgeBase kbase = KnowledgeBaseFactory.newKnowledgeBase();
         kbase.addKnowledgePackages( packages );
         KieSession session = kbase.newKieSession();
-        assertTrue( kbase.getFactType( "com.redhat.rules", "TransientFact" ) != null ); // kbase has declared fact type
+        assertTrue( kbase.getFactType( "com.redhat.rules.generated.facts", "TransientFact" ) != null ); // kbase has declared fact type
     }
 
     /**
      * Serializing the declared fact and the rules in separate files results in the declared fact type
-     * not being part of the kbase
+     * class not found
      */
     @Test
     public void serializeDeclaredFactAndRulesInSeparateFiles() throws Exception {
@@ -120,7 +124,7 @@ public class SerializeKnowledgePackagesTest {
         } );
         try {
 
-            FileOutputStream fos = new FileOutputStream( Utils.TARGET_DIR + File.separator + "knowledge-packages.bin" );
+            FileOutputStream fos = new FileOutputStream( Utils.TARGET_DIR + File.separator + BIN_FILE );
             DroolsObjectOutputStream out = new DroolsObjectOutputStream( fos );
             out.writeObject( builder.getKnowledgePackages() );
             out.close();

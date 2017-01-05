@@ -8,6 +8,10 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.drools.compiler.kie.builder.impl.MemoryKieModule;
 import org.drools.core.common.DroolsObjectInputStream;
@@ -23,7 +27,7 @@ import com.redhat.kie.serialization.util.Utils;
 /**
  * 
  * This test demonstrates that serializing from the KieBase works in the sense that it loads the binary rules without
- * triggering a rebuild. This is the call stack for getting the KieSession... at no point does it call a builder method
+ * building the DRL. This is the call stack for getting the KieSession... at no point does it call a builder method
  *  KieBaseImpl.newKieSession
  *      KieBaseImpl.newStatefulKnowledgeSession (line 294)
  *          KieBaseImpl.newStatefulKnowledgeSession (line 298)
@@ -54,7 +58,11 @@ public class SerializeKieBaseTest {
      */
     @Test
     public void serializeKieBaseAsOneFile() throws Exception {
-        serializeKieBase( createKieModule( "RulesAndDeclaredFact.drl" ) );
+        List<Map<String,String>> resources = new ArrayList<Map<String,String>>();
+        resources.add( new HashMap<String, String>() { { put( "package", "com.redhat.rules" ); put( "filename", "RulesAndDeclaredFact.drl" ); } } );
+        
+        serializeKieBase( createKieModule( resources ) );
+        
         KieBase kbase = deserializeKieBase();
         KieSession session = kbase.newKieSession();
         int count = session.fireAllRules();
@@ -67,7 +75,12 @@ public class SerializeKieBaseTest {
      */
     @Test
     public void serializeKieBaseAsTwoFiles() throws Exception {
-        serializeKieBase( createKieModule( "DeclaredFact.drl", "RulesOnly.drl" ) );
+        List<Map<String,String>> resources = new ArrayList<Map<String,String>>();
+        resources.add( new HashMap<String, String>() { { put( "package", "com.redhat.rules.generated.facts" ); put( "filename", "DeclaredFact.drl" ); } } );
+        resources.add( new HashMap<String, String>() { { put( "package", "com.redhat.rules" ); put( "filename", "RulesOnly.drl" ); } } );
+        
+        serializeKieBase( createKieModule( resources ) );
+        
         KieBase kbase = deserializeKieBase();
         KieSession session = kbase.newKieSession();
         int count = session.fireAllRules();
