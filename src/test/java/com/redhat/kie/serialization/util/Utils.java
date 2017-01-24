@@ -3,15 +3,21 @@ package com.redhat.kie.serialization.util;
 import static org.junit.Assert.fail;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
 import org.drools.compiler.kie.builder.impl.KieFileSystemImpl;
 import org.drools.compiler.kie.builder.impl.MemoryKieModule;
 import org.drools.compiler.kproject.models.KieModuleModelImpl;
+import org.drools.core.common.DroolsObjectInputStream;
+import org.drools.core.common.DroolsObjectOutputStream;
+import org.kie.api.KieBase;
 import org.kie.api.KieServices;
 import org.kie.api.builder.KieBuilder;
 import org.kie.api.builder.KieFileSystem;
@@ -23,6 +29,8 @@ import org.kie.api.builder.model.KieModuleModel;
 import org.kie.api.builder.model.KieSessionModel.KieSessionType;
 import org.kie.api.conf.EqualityBehaviorOption;
 import org.kie.api.conf.EventProcessingOption;
+import org.kie.api.definition.KiePackage;
+import org.kie.api.runtime.KieContainer;
 import org.kie.api.runtime.conf.ClockTypeOption;
 import org.kie.internal.io.ResourceFactory;
 
@@ -43,7 +51,7 @@ public class Utils {
             .setDefault( true );
         
         resources.forEach( resource -> {
-            System.err.println( "adding package " + resource.get( "package" ) );
+            System.out.println( "adding package " + resource.get( "package" ) );
             kieModule.addPackage( resource.get( "package" ) );
          } );
 
@@ -67,13 +75,68 @@ public class Utils {
         return memoryKieModule;
     }
 
+    public static void serializeKieBase( String filename, MemoryKieModule kmodule ) throws Exception {
+        KieContainer container = Utils.KIE_SERVICES.newKieContainer( kmodule.getReleaseId(), Thread.currentThread().getContextClassLoader() );
+        KieBase kbase = container.getKieBase();
+        FileOutputStream fos = new FileOutputStream( new File( filename ) );
+        DroolsObjectOutputStream out = new DroolsObjectOutputStream( fos );
+        out.writeObject( kbase );
+        out.close();
+    }
+
+    public static KieBase deserializeKieBase( String filename ) throws Exception {
+        KieBase kbase = null;
+        try {
+            FileInputStream fis = new FileInputStream( new File( filename ) );
+            DroolsObjectInputStream in = new DroolsObjectInputStream( fis );
+            kbase = (KieBase) in.readObject();
+            in.close();
+            return kbase;
+        }
+        catch ( Exception e ) {
+            System.err.println( "exception occurred " + e.getMessage() );
+            System.err.println( "cause was " + e.getCause() );
+            e.printStackTrace();
+        }
+        return kbase;
+
+    }
+
+    public static void serializeKiePackages( String filename, MemoryKieModule kmodule ) throws Exception {
+        KieContainer container = Utils.KIE_SERVICES.newKieContainer( kmodule.getReleaseId(), Thread.currentThread().getContextClassLoader() );
+        KieBase kbase = container.getKieBase();
+        Collection<KiePackage> packages = kbase.getKiePackages();
+        FileOutputStream fos = new FileOutputStream( new File( filename ) );
+        DroolsObjectOutputStream out = new DroolsObjectOutputStream( fos );
+        out.writeObject( packages );
+        out.close();
+    }
+
+    @SuppressWarnings( "unchecked" )
+    public static Collection<KiePackage> deserializeKiePackages( String filename, ClassLoader classloader ) throws Exception {
+        Collection<KiePackage> packages = null;
+        try {
+            FileInputStream fis = new FileInputStream( new File( filename ) );
+            DroolsObjectInputStream in = new DroolsObjectInputStream( fis, classloader );
+            packages = (Collection<KiePackage>) in.readObject();
+            in.close();
+            return packages;
+        }
+        catch ( Exception e ) {
+            System.err.println( "exception occurred " + e.getMessage() );
+            System.err.println( "cause was " + e.getCause() );
+            e.printStackTrace();
+        }
+        return packages;
+
+    }
+
     private static void buildRules( KieFileSystem kfs, KieBuilder kBuilder, List<Map<String, String>> resources ) throws Exception {
 
         resources.forEach( resource -> {
             try {
                 Path p = Paths.get( SRC_MAIN_RESOURCES + File.separator + RULES_FOLDER + File.separator + resource.get( "filename" ) );
-                System.err.println( "adding : " + p.toAbsolutePath().toString() );
-                System.out.println( "adding to kfs as: " + "src/main/resources/" + resource.get( "package" ) + "/" + resource.get( "filename" ) );
+                System.out.println( "adding : " + p.toAbsolutePath().toString() );
                 kfs.write( "src/main/resources/" + resource.get( "package" ) + "/" + resource.get( "filename" ), ResourceFactory.newInputStreamResource( Files.newInputStream( p ) ) );
             }
             catch ( Exception e ) {

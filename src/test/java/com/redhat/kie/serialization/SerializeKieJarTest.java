@@ -35,6 +35,7 @@ import com.redhat.util.BinaryKModuleExternalizer;
  * 3) The stack size should not exceed the JVM defaults
  *
  */
+@SuppressWarnings( "serial" )
 public class SerializeKieJarTest {
 
     private static final String KJAR_NAME = "test-kjar";

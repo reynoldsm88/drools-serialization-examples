@@ -42,7 +42,7 @@ import com.redhat.kie.serialization.util.Utils;
  * 3) The stack size should not exceed the JVM defaults
  *
  */
-@SuppressWarnings( "deprecation" )
+@Deprecated()
 public class SerializeKnowledgePackagesTest {
 
     private static final String BIN_FILE = "knowledge-packages.bin";
@@ -79,7 +79,9 @@ public class SerializeKnowledgePackagesTest {
     public void serializeOnlyTheDeclaredFactType() throws Exception {
         serializePackagesAsBin( "DeclaredFact.drl" );
         Collection<KnowledgePackage> packages = deserializeBinaryFile();
-        packages.forEach( p -> {System.out.println( p.getName() );} );
+        packages.forEach( p -> {
+            System.out.println( p.getName() );
+        } );
         KnowledgeBase kbase = KnowledgeBaseFactory.newKnowledgeBase();
         kbase.addKnowledgePackages( packages );
         KieSession session = kbase.newKieSession();

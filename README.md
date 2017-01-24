@@ -1,1 +1,0 @@
-# drools-serialization-examples

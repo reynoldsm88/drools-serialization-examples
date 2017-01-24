@@ -1,11 +1,11 @@
 package com.redhat.kie.serialization;
 
 import static com.redhat.kie.serialization.util.Utils.createKieModule;
+import static com.redhat.kie.serialization.util.Utils.deserializeKieBase;
+import static com.redhat.kie.serialization.util.Utils.serializeKieBase;
 import static org.junit.Assert.assertEquals;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -13,30 +13,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.drools.compiler.kie.builder.impl.MemoryKieModule;
-import org.drools.core.common.DroolsObjectInputStream;
-import org.drools.core.common.DroolsObjectOutputStream;
 import org.junit.Before;
 import org.junit.Test;
 import org.kie.api.KieBase;
-import org.kie.api.runtime.KieContainer;
 import org.kie.api.runtime.KieSession;
 
 import com.redhat.kie.serialization.util.Utils;
 
 /**
  * 
- * This test demonstrates that serializing from the KieBase works in the sense that it loads the binary rules without
- * building the DRL. This is the call stack for getting the KieSession... at no point does it call a builder method
- *  KieBaseImpl.newKieSession
- *      KieBaseImpl.newStatefulKnowledgeSession (line 294)
- *          KieBaseImpl.newStatefulKnowledgeSession (line 298)
- *              KnowledgeBaseImpl.newStatefulSession (line 1414)
- *                  KnowledgeBaseImpl.newStatefulSession( line 1430 )
- *                      WorkingMemoryFactory.createWorkingMemory
- * 
- * However, in a real environment with a deeply nested domain model and a very large rule set
- * this results in the stack size becoming huge. This is much harder to reproduce in a unit test.
+ * The stack size is no longer an issue as a result of https://github.com/droolsjbpm/drools/commit/cc4cd848e292914187db2396eb27f8e72d740863
  * 
  * As a reminder, the following three requirements apply 
  * 1) Rules must be built and serialized in a binary format that an be saved to a DB 
@@ -44,13 +30,14 @@ import com.redhat.kie.serialization.util.Utils;
  * 3) The stack size should not exceed the JVM defaults
  *
  */
+@SuppressWarnings( "serial" )
 public class SerializeKieBaseTest {
 
-    private static final String BIN_FILE = "kbase.bin";
+    private static final String KBASE_BIN_FILE = Utils.TARGET_DIR + File.separator + "kbase.bin";
 
     @Before
     public void setUp() throws Exception {
-        Files.deleteIfExists( Paths.get( Utils.TARGET_DIR + File.separator + BIN_FILE ) );
+        Files.deleteIfExists( Paths.get( KBASE_BIN_FILE ) );
     }
 
     /**
@@ -60,13 +47,13 @@ public class SerializeKieBaseTest {
     public void serializeKieBaseAsOneFile() throws Exception {
         List<Map<String,String>> resources = new ArrayList<Map<String,String>>();
         resources.add( new HashMap<String, String>() { { put( "package", "com.redhat.rules" ); put( "filename", "RulesAndDeclaredFact.drl" ); } } );
-        
-        serializeKieBase( createKieModule( resources ) );
-        
-        KieBase kbase = deserializeKieBase();
+
+        serializeKieBase( KBASE_BIN_FILE, createKieModule( resources ) );
+
+        KieBase kbase = deserializeKieBase( KBASE_BIN_FILE );
         KieSession session = kbase.newKieSession();
         int count = session.fireAllRules();
-        
+
         assertEquals( 2, count );
 
     }
@@ -76,43 +63,17 @@ public class SerializeKieBaseTest {
      */
     @Test
     public void serializeKieBaseAsTwoFiles() throws Exception {
-        List<Map<String,String>> resources = new ArrayList<Map<String,String>>();
+        List<Map<String, String>> resources = new ArrayList<Map<String, String>>();
         resources.add( new HashMap<String, String>() { { put( "package", "com.redhat.rules.generated.facts" ); put( "filename", "DeclaredFact.drl" ); } } );
-        resources.add( new HashMap<String, String>() { { put( "package", "com.redhat.rules" ); put( "filename", "RulesOnly.drl" ); } } );
-        serializeKieBase( createKieModule( resources ) );
-        
-        KieBase kbase = deserializeKieBase();
+        resources.add( new HashMap<String, String>() { { put( "package", "com.redhat.rules.generated.facts" ); put( "filename", "RulesOnly.drl" ); } } );
+
+        serializeKieBase( KBASE_BIN_FILE, createKieModule( resources ) );
+
+        KieBase kbase = deserializeKieBase( KBASE_BIN_FILE );
         KieSession session = kbase.newKieSession();
         int count = session.fireAllRules();
-        
+
         assertEquals( 2, count );
-
-    }
-
-    private void serializeKieBase( MemoryKieModule kmodule ) throws Exception {
-        KieContainer container = Utils.KIE_SERVICES.newKieContainer( kmodule.getReleaseId(), Thread.currentThread().getContextClassLoader() );
-        KieBase kbase = container.getKieBase();
-        FileOutputStream fos = new FileOutputStream( new File( Utils.TARGET_DIR + File.separator + BIN_FILE ) );
-        DroolsObjectOutputStream out = new DroolsObjectOutputStream( fos );
-        out.writeObject( kbase );
-        out.close();
-    }
-
-    private KieBase deserializeKieBase() throws Exception {
-        KieBase kbase = null;
-        try {
-            FileInputStream fis = new FileInputStream( new File( Utils.TARGET_DIR + File.separator + BIN_FILE ) );
-            DroolsObjectInputStream in = new DroolsObjectInputStream( fis );
-            kbase = (KieBase) in.readObject();
-            in.close();
-            return kbase;
-        }
-        catch ( Exception e ) {
-            System.err.println( "exception occurred " + e.getMessage() );
-            System.err.println( "cause was " + e.getCause() );
-            e.printStackTrace();
-        }
-        return kbase;
 
     }
 }
